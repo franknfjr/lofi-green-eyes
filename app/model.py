@@ -4,9 +4,12 @@ import torchaudio
 import io
 import numpy as np
 
+
 class MusicGenerator:
     def __init__(self):
-        self.model = MusicgenForConditionalGeneration.from_pretrained("facebook/musicgen-small")
+        self.model = MusicgenForConditionalGeneration.from_pretrained(
+            "facebook/musicgen-small"
+        )
         self.processor = AutoProcessor.from_pretrained("facebook/musicgen-small")
         self.device = "cuda" if torch.cuda.is_available() else "cpu"
         print(f"Using device: {self.device}")
@@ -14,9 +17,12 @@ class MusicGenerator:
 
     def generate(self, prompt: str, duration: int = 10) -> io.BytesIO:
         try:
-            duration = min(duration, 30)
+            # Converter duração para tokens (50 tokens por segundo)
+            max_new_tokens = int(duration * 50)
 
-            print(f"Generating audio with prompt: {prompt}")
+            print(
+                f"Generating audio with prompt: {prompt}, duration: {duration}s, tokens: {max_new_tokens}"
+            )
             inputs = self.processor(
                 text=[prompt],
                 padding=True,
@@ -25,7 +31,7 @@ class MusicGenerator:
 
             audio_values = self.model.generate(
                 **inputs,
-                max_new_tokens=512,
+                max_new_tokens=max_new_tokens,
                 do_sample=True,
                 guidance_scale=3.0,
             )
@@ -45,11 +51,7 @@ class MusicGenerator:
             # Salvar como WAV
             buffer = io.BytesIO()
             torchaudio.save(
-                buffer,
-                audio_data,
-                sample_rate=32000,
-                format="wav",
-                bits_per_sample=16
+                buffer, audio_data, sample_rate=32000, format="wav", bits_per_sample=16
             )
             buffer.seek(0)
 
